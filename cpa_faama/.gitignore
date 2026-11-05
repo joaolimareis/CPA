@@ -1,0 +1,8 @@
+.env
+config/usuarios.yaml
+data/*
+!data/.gitkeep
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/

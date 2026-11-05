@@ -1,0 +1,332 @@
+/* =====================================================================
+   AVALIAÇÃO INSTITUCIONAL (CPA) - BASE PARA BI  ·  VERSÃO 10 (prova "ADS" reconhecida como do curso de ADS; repetidas comparadas só dentro do semestre; informa o semestre da disciplina para validação; só os 6 cursos da CPA; avaliação docente repetida conta uma vez)
+   Uma linha por resposta, SEM identificação do aluno.
+   Bloco 1: alunos avaliando o CURSO / INFRAESTRUTURA
+   Bloco 2: alunos avaliando o DOCENTE / DISCIPLINA
+   ===================================================================== */
+
+/* ========== BLOCO 1: CURSO / INFRAESTRUTURA ========== */
+SELECT
+    'CURSO_INFRAESTRUTURA'              AS TIPO_AVALIACAO,
+    PL.NOME                             AS PERIODO_PROVA,
+    LEFT(PL.NOME, 6)                    AS SEMESTRE,
+    MAT.CODPERLET,
+    MAT.CODCURSO,
+    MAT.NOME_CURSO,
+    MAT.CODTURMA,
+    MAT.NOME_TURMA,
+    MAT.STATUS_MATRICULA,
+
+    BH.ID                               AS ID_RESPONDENTE,  -- só para contagem distinta
+    BH.ID                               AS ULTIMA_AVALIACAO,
+    CAST(NULL AS VARCHAR(30))           AS SEMESTRE_DISCIPLINA,
+
+    P.CODPROVA,
+    P.NOME                              AS NOME_PROVA,
+
+    CAST(NULL AS VARCHAR(20))           AS CODPROF,
+    CAST(NULL AS VARCHAR(120))          AS NOME_PROFESSOR,
+    CAST(NULL AS VARCHAR(20))           AS CODDISC,
+    CAST(NULL AS VARCHAR(255))          AS NOME_DISCIPLINA,
+
+    BHRP.CODMATERIA,
+    BHRP.CODQUESTAO,
+    CONVERT(VARCHAR(MAX), BQ.TEXTO)     AS DESC_QUESTAO,
+    BHRP.CODRESPOSTA,
+    CONVERT(VARCHAR(MAX), BO.TEXTO)     AS TEXTO_ALTERNATIVA,
+    CONVERT(VARCHAR(MAX), BM.VALMEMO)   AS COMENTARIO,
+
+    CASE
+        WHEN BM.VALMEMO IS NOT NULL
+             AND LTRIM(RTRIM(CONVERT(VARCHAR(MAX), BM.VALMEMO))) <> ''
+            THEN 'DISSERTATIVA'
+        WHEN BHRP.CODRESPOSTA IS NOT NULL
+            THEN 'OBJETIVA'
+        ELSE 'SEM RESPOSTA'
+    END                                 AS TIPO_RESPOSTA
+
+FROM BHISTRESPPROVA BHRP
+
+INNER JOIN BHISTORICO BH
+        ON BH.CODCOLIGADA = BHRP.CODCOLIGADA
+       AND BH.CODAREA = BHRP.CODAREA
+       AND BH.CODMATERIA = BHRP.CODMATERIA
+       AND BH.CODQUESTAO = BHRP.CODQUESTAO
+       AND BH.ID = BHRP.ID
+
+INNER JOIN BQUESTAO BQ
+        ON BQ.CODCOLIGADA = BHRP.CODCOLIGADA
+       AND BQ.CODAREA = BHRP.CODAREA
+       AND BQ.CODMATERIA = BHRP.CODMATERIA
+       AND BQ.CODQUESTAO = BHRP.CODQUESTAO
+
+INNER JOIN BPROVA P
+        ON P.CODCOLIGADA = BH.CODCOLIGADA
+       AND P.CODPROVA = BH.CODPROVA
+
+INNER JOIN BPERIODO PL
+        ON PL.CODCOLIGADA = BH.CODCOLIGADA
+       AND PL.CODPROVA = BH.CODPROVA
+       AND PL.CODPERIODO = BH.CODPERIODO
+
+LEFT JOIN BMEMO BM
+       ON BM.ID = BHRP.IDMEMORESPABERTA
+
+LEFT JOIN BOPCAO BO
+       ON BO.CODCOLIGADA = BHRP.CODCOLIGADA
+      AND BO.CODAREA = BHRP.CODAREA
+      AND BO.CODMATERIA = BHRP.CODMATERIA
+      AND BO.CODQUESTAO = BHRP.CODQUESTAO
+      AND BO.CODOPCAO = BHRP.CODRESPOSTA
+
+INNER JOIN SALUNO ALUNO
+        ON ALUNO.CODCOLIGADA = BH.CODCOLIGADA
+       AND ALUNO.CODPESSOA = BH.CODPESSOA
+
+/* UMA única matrícula do aluno no semestre da prova (evita duplicação).
+   Versão 3: só considera matrículas nos 6 cursos da CPA e prefere o curso do nome da prova. */
+CROSS APPLY (
+    SELECT TOP 1
+        PLM.CODPERLET,
+        HF.CODCURSO,
+        C.NOME          AS NOME_CURSO,
+        M.CODTURMA,
+        T.NOME          AS NOME_TURMA,
+        ST.DESCRICAO    AS STATUS_MATRICULA
+    FROM SMATRICPL M
+    INNER JOIN SPLETIVO PLM
+            ON PLM.CODCOLIGADA = M.CODCOLIGADA
+           AND PLM.IDPERLET = M.IDPERLET
+           AND PLM.CODFILIAL = M.CODFILIAL
+    INNER JOIN SSTATUS ST
+            ON ST.CODCOLIGADA = M.CODCOLIGADA
+           AND ST.CODSTATUS = M.CODSTATUS
+    LEFT JOIN SHABILITACAOFILIAL HF
+           ON HF.CODCOLIGADA = M.CODCOLIGADA
+          AND HF.IDHABILITACAOFILIAL = M.IDHABILITACAOFILIAL
+    LEFT JOIN SCURSO C
+           ON C.CODCOLIGADA = HF.CODCOLIGADA
+          AND C.CODCURSO = HF.CODCURSO
+    LEFT JOIN STURMA T
+           ON T.CODCOLIGADA = M.CODCOLIGADA
+          AND T.CODFILIAL = M.CODFILIAL
+          AND T.CODTURMA = M.CODTURMA
+          AND T.IDPERLET = M.IDPERLET
+    WHERE M.CODCOLIGADA = ALUNO.CODCOLIGADA
+      AND M.RA = ALUNO.RA
+      AND PLM.CODPERLET IN ('2026/1', '2026/1T', '2026/2', '2026/2T')
+      AND LEFT(PLM.CODPERLET, 6) = LEFT(PL.NOME, 6)
+      -- somente os cursos que participam da CPA
+      AND C.NOME IN ('Análise e Desenvolvimento de Sistemas', 'Direito', 'Enfermagem', 'Pedagogia', 'Psicologia', 'Teologia')
+    ORDER BY
+        -- 1º: o curso que aparece no nome da prova (ex.: "Teologia - Especificidades do Curso")
+        CASE WHEN P.NOME LIKE C.NOME + '%' THEN 0
+             WHEN P.NOME LIKE 'ADS%' AND C.NOME LIKE '%Desenvolvimento de Sistemas' THEN 0
+             ELSE 1 END,
+        -- 2º: matrícula ativa
+        CASE WHEN UPPER(LTRIM(RTRIM(ST.DESCRICAO))) = 'CURSANDO' THEN 0 ELSE 1 END,
+        M.IDPERLET DESC
+) MAT
+
+WHERE BHRP.CODCOLIGADA = 5
+  AND BHRP.CODAREA = '8'
+  AND PL.NOME IN ('2026/1', '2026/1T', '2026/2', '2026/2T')
+
+  AND UPPER(LTRIM(RTRIM(ISNULL(MAT.NOME_CURSO, '')))) NOT LIKE '%PENSIONATO%'
+  AND (
+       MAT.NOME_TURMA IS NULL
+       OR UPPER(LTRIM(RTRIM(MAT.NOME_TURMA))) NOT LIKE '%ETAPA%'
+  )
+
+  -- remove textos informativos (apresentação da CPA / agradecimento)
+  AND (
+       BO.TEXTO IS NULL
+       OR UPPER(LTRIM(CONVERT(VARCHAR(MAX), BO.TEXTO))) NOT LIKE 'ENTENDI%'
+  )
+
+  -- exclui avaliação docente (ela vem no bloco 2)
+  AND NOT EXISTS (
+      SELECT 1
+      FROM SOBJETOAVALIADO SOA_DOC
+      WHERE SOA_DOC.CODCOLIGADA = BH.CODCOLIGADA
+        AND SOA_DOC.SEQOBJETOAVALIADO = BH.SEQOBJETOAVALIADO
+        AND SOA_DOC.IDTURMADISC IS NOT NULL
+        AND SOA_DOC.CODPROF IS NOT NULL
+  )
+
+UNION ALL
+
+/* ========== BLOCO 2: DOCENTE / DISCIPLINA ========== */
+SELECT
+    'DOCENTE_DISCIPLINA'                AS TIPO_AVALIACAO,
+    PL.NOME                             AS PERIODO_PROVA,
+    LEFT(PL.NOME, 6)                    AS SEMESTRE,
+    MAT.CODPERLET,
+    MAT.CODCURSO,
+    MAT.NOME_CURSO,
+    TD.CODTURMA,                        -- turma da disciplina AVALIADA
+    T.NOME                              AS NOME_TURMA,
+    MAT.STATUS_MATRICULA,
+
+    BH.ID                               AS ID_RESPONDENTE,
+    -- se o aluno avaliou o mesmo professor/disciplina mais de uma vez, aqui vem o ID da avaliação
+    -- mais recente DENTRO DO MESMO SEMESTRE; o sistema descarta as anteriores. Uma reavaliação feita em
+    -- outro semestre não anula a avaliação válida do semestre original.
+    MAX(BH.ID) OVER (PARTITION BY BH.CODCOLIGADA, BH.CODPESSOA, BH.SEQOBJETOAVALIADO, LEFT(PL.NOME, 6)) AS ULTIMA_AVALIACAO,
+    CAST(PLTD.CODPERLET AS VARCHAR(30)) AS SEMESTRE_DISCIPLINA,
+
+    P.CODPROVA,
+    P.NOME                              AS NOME_PROVA,
+
+    SOA.CODPROF,
+    PPPROF.NOME                         AS NOME_PROFESSOR,
+    TD.CODDISC,
+    D.NOME                              AS NOME_DISCIPLINA,
+
+    BHRP.CODMATERIA,
+    BHRP.CODQUESTAO,
+    CONVERT(VARCHAR(MAX), BQ.TEXTO)     AS DESC_QUESTAO,
+    BHRP.CODRESPOSTA,
+    CONVERT(VARCHAR(MAX), BO.TEXTO)     AS TEXTO_ALTERNATIVA,
+    CONVERT(VARCHAR(MAX), BM.VALMEMO)   AS COMENTARIO,
+
+    CASE
+        WHEN BM.VALMEMO IS NOT NULL
+             AND LTRIM(RTRIM(CONVERT(VARCHAR(MAX), BM.VALMEMO))) <> ''
+            THEN 'DISSERTATIVA'
+        WHEN BHRP.CODRESPOSTA IS NOT NULL
+            THEN 'OBJETIVA'
+        ELSE 'SEM RESPOSTA'
+    END                                 AS TIPO_RESPOSTA
+
+FROM BHISTRESPPROVA BHRP
+
+INNER JOIN BHISTORICO BH
+        ON BH.CODCOLIGADA = BHRP.CODCOLIGADA
+       AND BH.CODAREA = BHRP.CODAREA
+       AND BH.CODMATERIA = BHRP.CODMATERIA
+       AND BH.CODQUESTAO = BHRP.CODQUESTAO
+       AND BH.ID = BHRP.ID
+
+INNER JOIN BQUESTAO BQ
+        ON BQ.CODCOLIGADA = BHRP.CODCOLIGADA
+       AND BQ.CODAREA = BHRP.CODAREA
+       AND BQ.CODMATERIA = BHRP.CODMATERIA
+       AND BQ.CODQUESTAO = BHRP.CODQUESTAO
+
+INNER JOIN BPROVA P
+        ON P.CODCOLIGADA = BH.CODCOLIGADA
+       AND P.CODPROVA = BH.CODPROVA
+
+INNER JOIN BPERIODO PL
+        ON PL.CODCOLIGADA = BH.CODCOLIGADA
+       AND PL.CODPROVA = BH.CODPROVA
+       AND PL.CODPERIODO = BH.CODPERIODO
+
+LEFT JOIN BMEMO BM
+       ON BM.ID = BHRP.IDMEMORESPABERTA
+
+LEFT JOIN BOPCAO BO
+       ON BO.CODCOLIGADA = BHRP.CODCOLIGADA
+      AND BO.CODAREA = BHRP.CODAREA
+      AND BO.CODMATERIA = BHRP.CODMATERIA
+      AND BO.CODQUESTAO = BHRP.CODQUESTAO
+      AND BO.CODOPCAO = BHRP.CODRESPOSTA
+
+/* professor e disciplina que estavam sendo avaliados */
+INNER JOIN SOBJETOAVALIADO SOA
+        ON SOA.CODCOLIGADA = BH.CODCOLIGADA
+       AND SOA.SEQOBJETOAVALIADO = BH.SEQOBJETOAVALIADO
+       AND SOA.IDTURMADISC IS NOT NULL
+       AND SOA.CODPROF IS NOT NULL
+
+
+INNER JOIN STURMADISC TD
+        ON TD.CODCOLIGADA = SOA.CODCOLIGADA
+       AND TD.IDTURMADISC = SOA.IDTURMADISC
+
+/* período letivo da disciplina avaliada. A consulta traz tudo e informa o semestre da disciplina
+   (SEMESTRE_DISCIPLINA); o sistema e o Power BI descartam as de semestres anteriores e mostram
+   quantas foram descartadas na página de Validação. */
+LEFT JOIN SPLETIVO PLTD
+       ON PLTD.CODCOLIGADA = TD.CODCOLIGADA
+      AND PLTD.IDPERLET = TD.IDPERLET
+
+LEFT JOIN STURMA T
+       ON T.CODCOLIGADA = TD.CODCOLIGADA
+      AND T.CODFILIAL = TD.CODFILIAL
+      AND T.IDPERLET = TD.IDPERLET
+      AND T.CODTURMA = TD.CODTURMA
+
+LEFT JOIN SDISCIPLINA D
+       ON D.CODCOLIGADA = TD.CODCOLIGADA
+      AND D.CODDISC = TD.CODDISC
+
+LEFT JOIN SPROFESSOR PROF
+       ON PROF.CODCOLIGADA = SOA.CODCOLIGADA
+      AND PROF.CODPROF = SOA.CODPROF
+
+LEFT JOIN PPESSOA PPPROF
+       ON PPPROF.CODIGO = PROF.CODPESSOA
+
+INNER JOIN SALUNO ALUNO
+        ON ALUNO.CODCOLIGADA = BH.CODCOLIGADA
+       AND ALUNO.CODPESSOA = BH.CODPESSOA
+
+/* curso do aluno: UMA matrícula no semestre da prova (evita duplicação).
+   Versão 3: só os 6 cursos da CPA; usa a matrícula em que o aluno cursa a disciplina avaliada. */
+CROSS APPLY (
+    SELECT TOP 1
+        PLM.CODPERLET,
+        HF.CODCURSO,
+        C.NOME          AS NOME_CURSO,
+        ST.DESCRICAO    AS STATUS_MATRICULA
+    FROM SMATRICPL M
+    INNER JOIN SPLETIVO PLM
+            ON PLM.CODCOLIGADA = M.CODCOLIGADA
+           AND PLM.IDPERLET = M.IDPERLET
+           AND PLM.CODFILIAL = M.CODFILIAL
+    INNER JOIN SSTATUS ST
+            ON ST.CODCOLIGADA = M.CODCOLIGADA
+           AND ST.CODSTATUS = M.CODSTATUS
+    LEFT JOIN SHABILITACAOFILIAL HF
+           ON HF.CODCOLIGADA = M.CODCOLIGADA
+          AND HF.IDHABILITACAOFILIAL = M.IDHABILITACAOFILIAL
+    LEFT JOIN SCURSO C
+           ON C.CODCOLIGADA = HF.CODCOLIGADA
+          AND C.CODCURSO = HF.CODCURSO
+    WHERE M.CODCOLIGADA = ALUNO.CODCOLIGADA
+      AND M.RA = ALUNO.RA
+      AND PLM.CODPERLET IN ('2026/1', '2026/1T', '2026/2', '2026/2T')
+      AND LEFT(PLM.CODPERLET, 6) = LEFT(PL.NOME, 6)
+      -- somente os cursos que participam da CPA
+      AND C.NOME IN ('Análise e Desenvolvimento de Sistemas', 'Direito', 'Enfermagem', 'Pedagogia', 'Psicologia', 'Teologia')
+    ORDER BY
+        -- 1º: a matrícula em que o aluno cursa a disciplina avaliada
+        CASE WHEN EXISTS (SELECT 1 FROM SMATRICULA MD
+                          WHERE MD.CODCOLIGADA = M.CODCOLIGADA
+                            AND MD.RA = M.RA
+                            AND MD.IDPERLET = M.IDPERLET
+                            AND MD.IDHABILITACAOFILIAL = M.IDHABILITACAOFILIAL
+                            AND MD.IDTURMADISC = SOA.IDTURMADISC) THEN 0 ELSE 1 END,
+        -- 2º: matrícula ativa
+        CASE WHEN UPPER(LTRIM(RTRIM(ST.DESCRICAO))) = 'CURSANDO' THEN 0 ELSE 1 END,
+        M.IDPERLET DESC
+) MAT
+
+WHERE BHRP.CODCOLIGADA = 5
+  AND BHRP.CODAREA = '8'
+  AND PL.NOME IN ('2026/1', '2026/1T', '2026/2', '2026/2T')
+
+  AND UPPER(LTRIM(RTRIM(ISNULL(MAT.NOME_CURSO, '')))) NOT LIKE '%PENSIONATO%'
+  AND (
+       T.NOME IS NULL
+       OR UPPER(LTRIM(RTRIM(T.NOME))) NOT LIKE '%ETAPA%'
+  )
+
+  -- remove textos informativos (apresentação da CPA / agradecimento)
+  AND (
+       BO.TEXTO IS NULL
+       OR UPPER(LTRIM(CONVERT(VARCHAR(MAX), BO.TEXTO))) NOT LIKE 'ENTENDI%'
+  )
+;

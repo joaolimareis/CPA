@@ -1,0 +1,17 @@
+# Copie para config/usuarios.yaml ou, melhor, crie os usuários com scripts/criar_usuario.py
+# (o script gera o hash da senha; nunca grave senhas em texto puro aqui).
+usuarios:
+  cpa:
+    nome: Comissão Própria de Avaliação
+    perfil: admin
+    senha_hash: "$2b$12$...gerado-pelo-script..."
+  coord.direito:
+    nome: Coordenação de Direito
+    perfil: coordenador
+    cursos: [Direito]
+    senha_hash: "$2b$12$..."
+  prof.exemplo:
+    nome: Professor Exemplo
+    perfil: professor
+    codprof: "01234"        # CODPROF do TOTVS
+    senha_hash: "$2b$12$..."

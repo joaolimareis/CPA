@@ -1,0 +1,28 @@
+# Site da CPA + proxy HTTPS (Caddy). Uso: docker compose up -d   (dentro da pasta deploy)
+services:
+  cpa:
+    build: ..
+    restart: always
+    env_file: ../.env
+    volumes:
+      - ../config:/app/config          # usuários e regras de moderação
+      - ../data:/app/data              # cópia local dos dados e registro de acessos
+    expose:
+      - "8501"
+
+  https:
+    image: caddy:2.8
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_dados:/data
+      - caddy_config:/config
+    depends_on:
+      - cpa
+
+volumes:
+  caddy_dados:
+  caddy_config:

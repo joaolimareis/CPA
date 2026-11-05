@@ -1,0 +1,6 @@
+.env
+.venv
+data/*
+config/usuarios.yaml
+__pycache__
+.pytest_cache

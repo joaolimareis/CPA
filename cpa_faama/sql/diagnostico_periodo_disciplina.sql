@@ -1,0 +1,40 @@
+/* =====================================================================
+   DIAGNÓSTICO: ALUNOS AVALIANDO PROFESSORES DE SEMESTRES ANTERIORES
+   ---------------------------------------------------------------------
+   Só leitura: não altera nada no RM. Não traz nome nem RA.
+   ===================================================================== */
+
+-- A. Avaliações docentes respondidas na prova de 2026/2, pelo semestre da disciplina avaliada.
+--    O certo é tudo aparecer como 2026/2. Linhas com 2026/1 (ou anteriores) confirmam o problema.
+SELECT P.CODPROVA,
+       P.NOME                    AS PROVA,
+       PLTD.CODPERLET            AS SEMESTRE_DA_DISCIPLINA,
+       COUNT(DISTINCT BH.ID)     AS AVALIACOES,
+       COUNT(DISTINCT BH.CODPESSOA) AS ALUNOS
+FROM   BHISTORICO BH
+       INNER JOIN BPROVA P ON P.CODCOLIGADA = BH.CODCOLIGADA AND P.CODPROVA = BH.CODPROVA
+       INNER JOIN BPERIODO PL ON PL.CODCOLIGADA = BH.CODCOLIGADA AND PL.CODPROVA = BH.CODPROVA
+                             AND PL.CODPERIODO = BH.CODPERIODO
+       INNER JOIN SOBJETOAVALIADO SOA ON SOA.CODCOLIGADA = BH.CODCOLIGADA
+                                     AND SOA.SEQOBJETOAVALIADO = BH.SEQOBJETOAVALIADO
+                                     AND SOA.CODPROF IS NOT NULL AND SOA.IDTURMADISC IS NOT NULL
+       INNER JOIN STURMADISC TD ON TD.CODCOLIGADA = SOA.CODCOLIGADA AND TD.IDTURMADISC = SOA.IDTURMADISC
+       INNER JOIN SPLETIVO PLTD ON PLTD.CODCOLIGADA = TD.CODCOLIGADA AND PLTD.IDPERLET = TD.IDPERLET
+WHERE  BH.CODCOLIGADA = 5
+  AND  BH.CODAREA = '8'
+  AND  LEFT(PL.NOME, 6) = '2026/2'
+GROUP  BY P.CODPROVA, P.NOME, PLTD.CODPERLET
+ORDER  BY P.CODPROVA, PLTD.CODPERLET;
+
+-- B. Objetos avaliados (professor + disciplina) de semestres anteriores ligados às provas abertas em 2026/2.
+--    Mostra se a configuração da avaliação no RM incluiu disciplinas antigas.
+SELECT PLTD.CODPERLET            AS SEMESTRE_DA_DISCIPLINA,
+       COUNT(DISTINCT SOA.SEQOBJETOAVALIADO) AS OBJETOS_AVALIADOS,
+       COUNT(DISTINCT SOA.CODPROF)           AS PROFESSORES
+FROM   SOBJETOAVALIADO SOA
+       INNER JOIN STURMADISC TD ON TD.CODCOLIGADA = SOA.CODCOLIGADA AND TD.IDTURMADISC = SOA.IDTURMADISC
+       INNER JOIN SPLETIVO PLTD ON PLTD.CODCOLIGADA = TD.CODCOLIGADA AND PLTD.IDPERLET = TD.IDPERLET
+WHERE  SOA.CODCOLIGADA = 5
+  AND  SOA.CODPROF IS NOT NULL
+GROUP  BY PLTD.CODPERLET
+ORDER  BY PLTD.CODPERLET DESC;

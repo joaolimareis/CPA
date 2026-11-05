@@ -1,0 +1,47 @@
+modo: ocultar
+minimo_letras: 3
+palavras_bloqueadas:
+- arromb*
+- babaca*
+- bost*
+- buceta
+- caralh*
+- corno*
+- cu
+- cuzao
+- desgrac*
+- escrot*
+- fdp
+- fod*
+- idiota*
+- imbecil*
+- merd*
+- otari*
+- piranha*
+- porr*
+- pqp
+- puta
+- putaria
+- puto
+- retardad*
+- safad*
+- tnc
+- vagabund*
+- viadinho
+- viado
+- vsf
+respostas_sem_conteudo:
+- '-'
+- n/a
+- na
+- nada
+- nada a acrescentar
+- nada a declarar
+- nao
+- nenhum
+- nenhuma
+- ok
+- sem comentario
+- sem comentarios
+- sem sugestoes
+ocultos_manualmente: []
