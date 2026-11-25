@@ -83,6 +83,7 @@ DESCRICOES = {
     "ranking": "Adesão proporcional por curso e turma.",
     "historico": "Evolução da participação e dos resultados.",
     "relatorio": "Relatório da CPA em PDF para apresentação.",
+    "relcurso": "Excel completo de cada curso para as coordenações.",
     "metodologia": "Como os dados são coletados e tratados.",
 }
 disponiveis = [c for c in chaves_do_perfil(usuario.perfil) if c in DESCRICOES]

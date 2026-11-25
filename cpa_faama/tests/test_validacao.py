@@ -32,3 +32,20 @@ def test_pdf_participacao_por_turma():
     assert pdf[:4] == b"%PDF"
     f = relatorio_participacao.faltam_para_meta(sem.assign(ALUNOS_MATRICULADOS=10, ALUNOS_RESPONDERAM=4), 0.6)
     assert (f == 2).all()
+
+
+def test_relatorio_coordenador_tem_todas_as_abas():
+    from io import BytesIO
+    import openpyxl
+    from cpa import moderacao, participacao, relatorio_coordenador
+    df = processar(demo.gerar())
+    sem = df[(df["SEMESTRE"] == "2026/1") & (df["NOME_CURSO"] == "Direito")]
+    com = moderacao.preparar_comentarios(sem, 5, moderacao.PADRAO)
+    part = participacao.processar(participacao.gerar_demo())
+    part = part[(part["SEMESTRE"] == "2026/1") & (part["NOME_CURSO"] == "Direito")]
+    wb = openpyxl.load_workbook(BytesIO(relatorio_coordenador.gerar(sem, com, part, "Direito", "2026/1", 5)))
+    assert wb.sheetnames == ["Leia-me", "Resumo", "Docentes (dimensões)", "Docentes por questão",
+                             "Comentários docentes", "Avaliação do curso", "Infraestrutura", "Comentários do curso",
+                             "Participação por turma"]
+    dim = wb["Docentes (dimensões)"]
+    assert dim.max_column > 9 and dim.max_row > 2

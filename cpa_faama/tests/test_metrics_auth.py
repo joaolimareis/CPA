@@ -109,3 +109,18 @@ def test_relatorio_pdf_gera_documento():
     part = participacao.processar(participacao.gerar_demo())
     pdf = relatorio_pdf.gerar(sem, part[part["SEMESTRE"] == "2026/1"], "2026/1", 5)
     assert pdf[:4] == b"%PDF" and len(pdf) > 20_000
+
+
+def test_salvar_usuario_pela_tela(tmp_path):
+    caminho = tmp_path / "usuarios.yaml"
+    auth.salvar_usuario("Coord.Direito", "Coordenação", "coordenador", "senha12345", ["Direito"], caminho=caminho)
+    usuarios = auth.carregar_usuarios(caminho)
+    assert auth.autenticar("coord.direito", "senha12345", usuarios).cursos == ("Direito",)
+    auth.salvar_usuario("coord.direito", "Coordenação", "coordenador", None, ["Direito", "Teologia"], caminho=caminho)
+    usuarios = auth.carregar_usuarios(caminho)
+    assert auth.autenticar("coord.direito", "senha12345", usuarios).cursos == ("Direito", "Teologia")
+    import pytest
+    with pytest.raises(ValueError):
+        auth.salvar_usuario("novo", "Novo", "admin", None, caminho=caminho)
+    with pytest.raises(ValueError):
+        auth.salvar_usuario("curta", "X", "admin", "123", caminho=caminho)

@@ -5,6 +5,12 @@ e apresenta os resultados com controle de acesso por perfil e regras de sigilo.
 
 ## Novidades desta versão
 
+- **Relatórios por curso** (Excel para as coordenações): todas as dimensões de cada professor e disciplina,
+  avaliação do curso, infraestrutura, comentários moderados e participação por turma. ZIP com todos os cursos.
+- **Cadastro de usuários pela tela** (Administração > Usuários e acessos), sem precisar do terminal.
+- **Atalhos para Windows**: `Instalar_CPA.bat` (uma vez), `Abrir_CPA.bat` (uso no próprio computador) e
+  `Abrir_CPA_rede_interna.bat` (outros computadores da rede acessam enquanto ele estiver aberto).
+
 - Identidade visual da FAAMA (logo, cores e tipografia) e página **Início** com a situação da avaliação.
 - Perfil **avaliador externo** (ex.: visita do MEC), somente leitura e com data de validade.
 - **Relatório da CPA em PDF**, página **Histórico** e página **Metodologia**.

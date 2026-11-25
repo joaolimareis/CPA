@@ -3,6 +3,14 @@
 O sistema precisa rodar num **servidor sempre ligado**, com **HTTPS** e acesso à API do TOTVS RM.
 Não publique em serviços gratuitos públicos nem use "Publicar na Web" do Power BI: os dados ficariam abertos.
 
+## Uso provisório, antes do servidor
+
+- **No computador de uma pessoa (ex.: presidente da CPA):** instalar o Python 3.12, copiar a pasta do sistema com o
+  `.env` e a pasta `config`, rodar `Instalar_CPA.bat` uma vez e, depois, abrir com `Abrir_CPA.bat`.
+- **Para outras pessoas da rede interna:** rodar `Abrir_CPA_rede_interna.bat` num computador que fique ligado;
+  os demais acessam `http://IP_DO_COMPUTADOR:8501` com o próprio login. Funciona só enquanto a janela estiver aberta
+  e só dentro da rede da instituição. Para uso definitivo, publicar em servidor (abaixo).
+
 ## O que pedir à TI
 
 1. Um servidor (Linux com Docker, recomendado, ou Windows Server).

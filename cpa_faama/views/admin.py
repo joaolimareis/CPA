@@ -46,14 +46,53 @@ if len(sem_classificacao):
     st.warning(f"{len(sem_classificacao)} respostas objetivas com alternativa não reconhecida. "
                "Verifique se surgiu uma nova escala de respostas.")
 
-st.subheader("Usuários cadastrados")
+st.subheader("Usuários e acessos")
 usuarios = auth.carregar_usuarios()
 st.dataframe(pd.DataFrame([{
     "Usuário": login, "Nome": d.get("nome"), "Perfil": auth.PERFIS.get(d.get("perfil"), d.get("perfil")),
     "Cursos": ", ".join(d.get("cursos") or []), "Cód. professor": d.get("codprof"),
-    "Válido até": d.get("valido_ate"), "Ativo": d.get("ativo", True)} for login, d in usuarios.items()]),
-    hide_index=True, width="stretch")
-st.caption("Para incluir ou alterar usuários: `python scripts/criar_usuario.py --help`")
+    "Válido até": d.get("valido_ate"), "Ativo": "Sim" if d.get("ativo", True) else "Não"}
+    for login, d in usuarios.items()]), hide_index=True, width="stretch")
+
+with st.expander("➕ Criar ou alterar um usuário", expanded=False):
+    existentes = ["(novo usuário)"] + sorted(usuarios)
+    escolhido = st.selectbox("Usuário", existentes, key="adm_usr_sel")
+    atual = usuarios.get(escolhido, {}) if escolhido != "(novo usuário)" else {}
+    cursos_base = sorted(df["NOME_CURSO"].dropna().unique())
+    perfis = list(auth.PERFIS)
+    with st.form("form_usuario", clear_on_submit=False):
+        c1, c2 = st.columns(2)
+        login_novo = c1.text_input("Login", value="" if not atual else escolhido, disabled=bool(atual),
+                                   help="Sem espaços. Ex.: coord.direito")
+        nome = c2.text_input("Nome", value=atual.get("nome", ""))
+        perfil = c1.selectbox("Perfil", perfis, index=perfis.index(atual.get("perfil", "coordenador")),
+                              format_func=lambda p: auth.PERFIS[p])
+        cursos_sel = c2.multiselect("Cursos (para coordenador)", cursos_base,
+                                    default=[c for c in atual.get("cursos", []) if c in cursos_base])
+        codprof = c1.text_input("Código do professor no TOTVS (para professor)", value=str(atual.get("codprof") or ""))
+        tem_validade = c2.checkbox("Acesso com data de validade", value=bool(atual.get("valido_ate")))
+        from datetime import date, timedelta
+        validade = c2.date_input("Válido até", value=date.fromisoformat(atual["valido_ate"]) if atual.get("valido_ate")
+                                 else date.today() + timedelta(days=30), format="DD/MM/YYYY")
+        senha = c1.text_input("Senha" + (" (deixe em branco para manter a atual)" if atual else ""), type="password")
+        senha2 = c2.text_input("Repita a senha", type="password")
+        ativo = st.checkbox("Ativo", value=atual.get("ativo", True))
+        if st.form_submit_button("Salvar usuário", type="primary"):
+            login_final = escolhido if atual else login_novo
+            if senha != senha2:
+                st.error("As senhas não conferem.")
+            elif login_final.strip().lower() == usuario.login and (not ativo or perfil != "admin"):
+                st.error("Você não pode desativar nem tirar o perfil de administrador do seu próprio usuário.")
+            else:
+                try:
+                    auth.salvar_usuario(login_final, nome, perfil, senha or None, cursos_sel, codprof or None,
+                                        validade.isoformat() if tem_validade else None, ativo)
+                    acessos.registrar("usuário salvo", usuario.login, login_final)
+                    st.success(f"Usuário {login_final} salvo.")
+                    st.rerun()
+                except ValueError as erro:
+                    st.error(str(erro))
+st.caption("Dica: para a visita do MEC, crie um usuário com perfil Avaliador externo e data de validade.")
 
 st.subheader("Registro de acessos")
 log = acessos.ler()

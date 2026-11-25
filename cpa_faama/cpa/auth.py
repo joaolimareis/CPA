@@ -86,6 +86,45 @@ def gerar_hash(senha: str) -> str:
     return bcrypt.hashpw(senha.encode(), bcrypt.gensalt(rounds=12)).decode()
 
 
+def salvar_usuario(login: str, nome: str, perfil: str, senha: str | None = None, cursos: list[str] | None = None,
+                   codprof: str | None = None, valido_ate: str | None = None, ativo: bool = True,
+                   caminho: Path | None = None) -> None:
+    """Cria ou altera um usuário. Sem `senha`, mantém a atual (obrigatória para usuário novo)."""
+    caminho = caminho or get_settings().arquivo_usuarios
+    login = login.strip().lower()
+    if not login or " " in login:
+        raise ValueError("O usuário não pode ficar vazio nem ter espaços.")
+    if perfil not in PERFIS:
+        raise ValueError("Perfil inválido.")
+    conteudo = (yaml.safe_load(caminho.read_text(encoding="utf-8")) if caminho.exists() else None) or {}
+    usuarios = conteudo.get("usuarios") or {}
+    dados = dict(usuarios.get(login, {}))
+    if not dados and not senha:
+        raise ValueError("Defina uma senha para o usuário novo.")
+    if senha is not None and len(senha) < 8:
+        raise ValueError("A senha precisa ter pelo menos 8 caracteres.")
+    if perfil == "coordenador" and not cursos:
+        raise ValueError("Escolha pelo menos um curso para o coordenador.")
+    if perfil == "professor" and not codprof:
+        raise ValueError("Informe o código do professor (CODPROF) do TOTVS.")
+    dados.update({"nome": nome.strip() or login, "perfil": perfil, "ativo": bool(ativo)})
+    dados["cursos"] = list(cursos or []) if perfil == "coordenador" else []
+    if perfil == "professor":
+        dados["codprof"] = str(codprof).strip()
+    else:
+        dados.pop("codprof", None)
+    if valido_ate:
+        dados["valido_ate"] = str(valido_ate)
+    else:
+        dados.pop("valido_ate", None)
+    if senha:
+        dados["senha_hash"] = gerar_hash(senha)
+    usuarios[login] = dados
+    conteudo["usuarios"] = usuarios
+    caminho.parent.mkdir(parents=True, exist_ok=True)
+    caminho.write_text(yaml.safe_dump(conteudo, allow_unicode=True, sort_keys=False), encoding="utf-8")
+
+
 # ---------- sessão (Streamlit) ----------
 
 def usuario_atual() -> Usuario | None:

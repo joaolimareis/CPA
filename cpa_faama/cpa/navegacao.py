@@ -11,6 +11,7 @@ PAGINAS = {
     "ranking": ("views/ranking.py", "Participação", "🏆"),
     "historico": ("views/historico.py", "Histórico", "📈"),
     "relatorio": ("views/relatorio.py", "Relatório da CPA", "📄"),
+    "relcurso": ("views/relatorios_curso.py", "Relatórios por curso", "🗂️"),
     "metodologia": ("views/metodologia.py", "Metodologia", "📘"),
     "validacao": ("views/validacao.py", "Validação dos Dados", "✅"),
     "auditoria": ("views/auditoria.py", "Auditoria dos Dados", "🔍"),
@@ -21,13 +22,13 @@ GRUPOS_POR_PERFIL = {
     "admin": {
         "Resultados": ["inicio", "visao", "docentes", "curso", "infra", "comentarios", "atencao"],
         "Participação e histórico": ["ranking", "historico"],
-        "Relatórios": ["relatorio", "metodologia"],
+        "Relatórios": ["relcurso", "relatorio", "metodologia"],
         "Conferência (CPA)": ["validacao", "auditoria", "admin"],
     },
     "coordenador": {
         "Resultados": ["inicio", "visao", "docentes", "curso", "infra", "comentarios", "atencao"],
         "Participação e histórico": ["ranking", "historico"],
-        "Sobre": ["metodologia"],
+        "Relatórios": ["relcurso", "metodologia"],
     },
     # Avaliador externo: só visões consolidadas (sem nomes de professores e sem comentários)
     "avaliador": {
